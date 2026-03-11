@@ -1,0 +1,115 @@
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+  gap: 18px;
+}
+
+.product-card {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 251, 247, 0.92);
+  border: 1px solid rgba(45, 33, 24, 0.08);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 28px 70px rgba(45, 33, 24, 0.14);
+}
+
+.product-image {
+  min-height: 190px;
+  padding: 18px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.product-image span {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.product-body {
+  padding: 18px;
+}
+
+.product-sku {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.product-heading {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.product-heading h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.product-body p,
+.empty-state p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.product-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.product-notes span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--surface-strong);
+  font-size: 0.78rem;
+}
+
+.product-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.product-meta span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(154, 90, 57, 0.08);
+}
+
+.product-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.product-footer button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: var(--accent);
+  color: #fff;
+}
+
+.empty-state {
+  padding: 48px 12px;
+  text-align: center;
+}
