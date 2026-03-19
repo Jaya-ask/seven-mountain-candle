@@ -1,4 +1,4 @@
-import "../styles/Header.css";
+import "./Header.scss";
 
 export default function Header({
   cartCount,
@@ -9,10 +9,6 @@ export default function Header({
 }) {
   return (
     <header className="site-header">
-      <div className="top-strip">
-        <span>Handcrafted decorative candles for gifting and home styling</span>
-        <span>{inventoryCount || 0}+ designs available for order</span>
-      </div>
       <div className="header-main">
         <div className="brand-block">
           <p className="eyebrow">Seven Mountains</p>
@@ -38,8 +34,9 @@ export default function Header({
         <a href="#best-sellers">Best Sellers</a>
         <a href="#gifts">Gift Ideas</a>
         <a href="#about">Our Story</a>
-        <a href="#catalog-data">Catalogue Data</a>
       </nav>
     </header>
   );
 }
+
+

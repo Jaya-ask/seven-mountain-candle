@@ -17,6 +17,13 @@
   line-height: 0.95;
 }
 
+.footer-address {
+  margin: 14px 0 0;
+  color: var(--muted);
+  max-width: 36ch;
+  line-height: 1.6;
+}
+
 .footer-columns {
   display: flex;
   justify-content: space-between;

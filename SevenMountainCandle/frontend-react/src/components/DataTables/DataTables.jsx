@@ -1,4 +1,4 @@
-import "../styles/DataTables.css";
+import "./DataTables.scss";
 
 function formatValue(value, kind = "number") {
   if (value == null) {
@@ -43,7 +43,7 @@ function TableSection({ title, subtitle, columns, rows }) {
             {rows.map((row, index) => (
               <tr key={row.id ?? row.partNo ?? row.sku ?? index}>
                 {columns.map((column) => (
-                  <td key={column.key}>
+                  <td key={column.key} data-label={column.label}>
                     {formatValue(row[column.key], column.kind)}
                   </td>
                 ))}
@@ -141,3 +141,5 @@ export default function DataTables({ supportingData }) {
     </details>
   );
 }
+
+

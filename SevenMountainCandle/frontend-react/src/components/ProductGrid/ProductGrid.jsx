@@ -1,14 +1,23 @@
-import "../styles/ProductGrid.css";
+import "./ProductGrid.scss";
 
 function ProductCard({ product, onAddToCart, currency }) {
+  const imageUrl = product.imageUrl;
+  const hasColorPair = Array.isArray(product.colors) && product.colors.length >= 2;
+  const fallbackGradient = hasColorPair
+    ? `linear-gradient(135deg, ${product.colors[0]}, ${product.colors[1]})`
+    : "linear-gradient(135deg, #d8b7a0, #f3e3d6)";
+
   return (
     <article className="product-card">
       <div
         className="product-image"
         style={{
-          backgroundImage: `linear-gradient(135deg, ${product.colors[0]}, ${product.colors[1]})`
+          backgroundImage: fallbackGradient
         }}
       >
+        {imageUrl ? (
+          <img src={imageUrl} alt={product.name} loading="lazy" />
+        ) : null}
         <span>{product.category}</span>
       </div>
       <div className="product-body">
@@ -61,3 +70,5 @@ export default function ProductGrid({ products, onAddToCart, currency }) {
     </div>
   );
 }
+
+

@@ -1,4 +1,5 @@
-import "../styles/CartDrawer.css";
+import { useEffect, useRef } from "react";
+import "./CartDrawer.scss";
 
 export default function CartDrawer({
   open,
@@ -8,15 +9,42 @@ export default function CartDrawer({
   onUpdateQuantity,
   currency
 }) {
+  const drawerRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event) {
+      if (drawerRef.current && !drawerRef.current.contains(event.target)) {
+        onClose();
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [open, onClose]);
+
   return (
-    <aside className={`cart-drawer ${open ? "open" : ""}`}>
+    <aside ref={drawerRef} className={`cart-drawer ${open ? "open" : ""}`}>
       <div className="cart-header">
         <div>
           <p className="eyebrow">Your Basket</p>
           <h3>Candle Cart</h3>
         </div>
-        <button type="button" onClick={onClose}>
-          Close
+        <button
+          type="button"
+          className="close-button"
+          onClick={onClose}
+          aria-label="Close cart"
+        >
+          <span aria-hidden="true">&times;</span>
         </button>
       </div>
       <div className="cart-items">
@@ -62,3 +90,5 @@ export default function CartDrawer({
     </aside>
   );
 }
+
+

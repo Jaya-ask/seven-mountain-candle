@@ -1,18 +1,4 @@
-:root {
-  --bg: #f4ede4;
-  --surface: rgba(255, 250, 244, 0.82);
-  --surface-strong: #efe0ce;
-  --surface-dark: #2d2017;
-  --text: #2d2118;
-  --muted: #6f6153;
-  --line: rgba(45, 33, 24, 0.12);
-  --accent: #9a5a39;
-  --accent-dark: #6e3f28;
-  --accent-soft: rgba(154, 90, 57, 0.12);
-  --shadow: 0 24px 70px rgba(45, 33, 24, 0.1);
-  --radius-xl: 32px;
-  --radius-lg: 24px;
-}
+@use "../../theme/theme";
 
 * {
   box-sizing: border-box;
@@ -27,9 +13,9 @@ body {
   font-family: "Manrope", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at 8% 10%, rgba(154, 90, 57, 0.18), transparent 24%),
-    radial-gradient(circle at 88% 14%, rgba(101, 133, 114, 0.12), transparent 20%),
-    linear-gradient(180deg, #f9f4ee 0%, #f3e8dc 42%, #eadbcc 100%);
+    radial-gradient(circle at 12% 8%, rgba(164, 122, 72, 0.12), transparent 28%),
+    radial-gradient(circle at 90% 16%, rgba(226, 210, 192, 0.38), transparent 30%),
+    linear-gradient(180deg, #fdfbf8 0%, #f7f2ea 48%, #f2e8db 100%);
 }
 
 body::before {
@@ -41,7 +27,7 @@ body::before {
     linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
   background-size: 36px 36px;
-  opacity: 0.18;
+  opacity: 0.1;
 }
 
 a {
@@ -93,7 +79,7 @@ button {
   padding: 28px;
   border-radius: var(--radius-xl);
   background:
-    linear-gradient(180deg, rgba(255, 251, 247, 0.88), rgba(250, 243, 236, 0.82));
+    linear-gradient(180deg, rgba(255, 254, 251, 0.96), rgba(249, 243, 235, 0.9));
 }
 
 .catalog-toolbar {
@@ -134,12 +120,12 @@ button {
   min-width: 130px;
   padding: 16px;
   border-radius: 20px;
-  background: linear-gradient(180deg, #f9efe3, #eedbc3);
+  background: linear-gradient(180deg, #fcf6ef, #f2e6d6);
   text-align: center;
 }
 
 .catalog-summary.secondary {
-  background: linear-gradient(180deg, #f7f4ef, #ede6dd);
+  background: linear-gradient(180deg, #faf7f2, #efe8df);
 }
 
 .catalog-summary strong {
@@ -157,8 +143,8 @@ button {
   padding: 28px;
   border-radius: var(--radius-xl);
   background:
-    linear-gradient(180deg, rgba(255, 250, 244, 0.7), rgba(244, 234, 222, 0.85)),
-    linear-gradient(135deg, rgba(141, 155, 125, 0.04), rgba(154, 90, 57, 0.05));
+    linear-gradient(180deg, rgba(255, 253, 249, 0.78), rgba(246, 237, 227, 0.9)),
+    linear-gradient(135deg, rgba(207, 187, 164, 0.07), rgba(164, 122, 72, 0.06));
 }
 
 .operations-header {

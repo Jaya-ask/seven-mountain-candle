@@ -1,13 +1,4 @@
-import "../styles/Sidebar.css";
-
-const quickLinks = [
-  "Wedding Favours",
-  "Birthday Gifts",
-  "Festive Decor",
-  "Spiritual Collection",
-  "Luxury Centerpieces",
-  "Bulk Orders"
-];
+import "./Sidebar.scss";
 
 export default function Sidebar({
   categories,
@@ -38,25 +29,17 @@ export default function Sidebar({
         ))}
       </div>
       <div className="sidebar-card">
-        <p className="eyebrow">Need Help?</p>
+        <p className="eyebrow">Get in touch</p>
         <div className="sidebar-note">
-          <strong>Curated for gifting and events</strong>
+          <strong>Custom Candle Creations for Every Taste</strong>
           <p>
-            Choose by occasion or contact us for custom orders, event quantities,
-            and premium packaging support.
+            From personalized candle design to bulk event orders, we help you
+            curate collections that elevate every moment.
           </p>
-        </div>
-      </div>
-      <div className="sidebar-card">
-        <p className="eyebrow">Shop by Occasion</p>
-        <div className="quick-links">
-          {quickLinks.map((item) => (
-            <a key={item} href="#collections">
-              {item}
-            </a>
-          ))}
         </div>
       </div>
     </aside>
   );
 }
+
+
