@@ -30,11 +30,27 @@ export default function useCatalog(currencyFormatter) {
     return catalog.products.filter((product) => {
       const categoryMatch =
         activeCategory === "All" || product.category === activeCategory;
+
+      const normalizedSearch = search.trim().toLowerCase();
+      const notesText = Array.isArray(product.notes) ? product.notes.join(" ") : "";
+      const searchableText = [
+        product.name,
+        product.category,
+        product.description,
+        notesText,
+        product.id,
+        product.sku,
+        product.productNumber,
+        product.number,
+        product.code
+      ]
+        .filter((value) => value !== undefined && value !== null)
+        .join(" ")
+        .toLowerCase();
+
       const searchMatch =
-        search.trim() === "" ||
-        `${product.name} ${product.description} ${product.notes.join(" ")}`
-          .toLowerCase()
-          .includes(search.toLowerCase());
+        normalizedSearch === "" || searchableText.includes(normalizedSearch);
+
       return categoryMatch && searchMatch;
     });
   }, [activeCategory, catalog.products, search]);

@@ -21,12 +21,10 @@ function ProductCard({ product, onAddToCart, currency }) {
         <span>{product.category}</span>
       </div>
       <div className="product-body">
-        <p className="product-sku">{product.sku}</p>
         <div className="product-heading">
           <h3>{product.name}</h3>
           <strong>{currency.format(product.price)}</strong>
         </div>
-        <p>{product.category} candle crafted as a decorative and gift-ready piece.</p>
         <div className="product-notes">
           {product.notes.slice(0, 2).map((note) => (
             <span key={note}>{note}</span>
@@ -37,7 +35,6 @@ function ProductCard({ product, onAddToCart, currency }) {
           <span>{product.uom}</span>
         </div>
         <div className="product-footer">
-          <small>SKU {product.sku}</small>
           <button type="button" onClick={() => onAddToCart(product)}>
             Add to cart
           </button>

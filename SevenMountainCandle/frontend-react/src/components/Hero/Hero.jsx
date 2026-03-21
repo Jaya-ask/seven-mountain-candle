@@ -1,19 +1,23 @@
 import "./Hero.scss";
 
 const referenceHeroImages = [
-  "https://cdn.durable.co/getty/18zjRXlwr1yVO35CLKMJ6sJC4kopDyXXJzAw7huajsCO8wNRyPOVo0637e4JbFQq.jpeg",
-  "https://cdn.durable.co/getty/21jR14b6gfCEsfu8I7Jr8bF2qXJMQ6uyo8eUxQrdTtiOUmI6arXoJqswJYAYrJB8.jpeg"
+  "https://res.cloudinary.com/dkhuecxa9/image/upload/v1774094877/dashboard2_mzrt06.jpg",
+  "https://res.cloudinary.com/dkhuecxa9/image/upload/v1774094876/dashboard1_rzxutd.jpg",
+  "https://res.cloudinary.com/dkhuecxa9/image/upload/v1773832265/SMC00010_pcf4lo.png",
+  "https://res.cloudinary.com/dkhuecxa9/image/upload/v1774095262/dashboard3_qrtdul.jpg"
 ];
 
-export default function Hero({ featured, currency, inventoryCount, priceRange }) {
-  const heroProduct = featured[0];
-  const heroImagePrimary =
-    featured[0]?.imageUrl || featured[0]?.imageutl || referenceHeroImages[0];
-  const heroImageSecondary =
-    featured[1]?.imageUrl || featured[1]?.imageutl || referenceHeroImages[1];
-
+export default function Hero({ featured, onShopNow }) {
   return (
     <section className="hero-banner">
+      <div className="hero-side hero-side-left">
+        <figure className="hero-photo hero-photo-primary">
+          <img src={referenceHeroImages[0]} alt="Premium candle arrangement" loading="eager" />
+        </figure>
+        <figure className="hero-photo hero-photo-secondary">
+          <img src={referenceHeroImages[1]} alt="Elegant candle styling" loading="lazy" />
+        </figure>
+      </div>
       <div className="hero-copy">
         <p className="eyebrow">Elevate Spaces with Seven Mountains Candles</p>
         <h2>Illuminate Your Space with Elegance</h2>
@@ -23,34 +27,25 @@ export default function Hero({ featured, currency, inventoryCount, priceRange })
           crafted to enrich your surroundings and elevate your moments.
         </p>
         <div className="hero-actions">
-          <a href="#collections">Shop Candles Now</a>
+          <button
+            type="button"
+            className="hero-shop-cta"
+            onClick={() => {
+              onShopNow?.();
+            }}
+          >
+            Shop Candles Now
+          </button>
           <button type="button">Get in touch</button>
         </div>
       </div>
-      <div className="hero-art">
-        <div className="hero-photo-stack">
-          <figure className="hero-photo hero-photo-primary">
-            <img src={heroImagePrimary} alt="Premium candle arrangement" loading="eager" />
-          </figure>
-          <figure className="hero-photo hero-photo-secondary">
-            <img src={heroImageSecondary} alt="Elegant candle styling" loading="lazy" />
-          </figure>
-        </div>
-      </div>
-      <div className="hero-feature-card">
-        {heroProduct ? (
-          <>
-            <span className="feature-badge">Custom Candle Creations</span>
-            <h3>{heroProduct.name}</h3>
-            <p>{heroProduct.category}</p>
-            <div className="hero-meta">
-              <span>{currency.format(heroProduct.price)}</span>
-              <span>UAE delivery available</span>
-            </div>
-          </>
-        ) : (
-          <p>Loading featured collection...</p>
-        )}
+      <div className="hero-side hero-side-right">
+        <figure className="hero-photo hero-photo-tertiary">
+          <img src={referenceHeroImages[2]} alt="Decorative candle display" loading="lazy" />
+        </figure>
+        <figure className="hero-photo hero-photo-quaternary">
+          <img src={referenceHeroImages[3]} alt="Stylish candle arrangement" loading="lazy" />
+        </figure>
       </div>
     </section>
   );

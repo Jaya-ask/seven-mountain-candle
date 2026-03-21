@@ -5,15 +5,15 @@ export default function Header({
   onCartOpen,
   search,
   onSearchChange,
-  inventoryCount
+  onBrandClick
 }) {
   return (
     <header className="site-header">
       <div className="header-main">
-        <div className="brand-block">
-          <p className="eyebrow">Seven Mountains</p>
-          <h1>Candle Studio</h1>
-        </div>
+        <button type="button" className="brand-block" onClick={onBrandClick}>
+          <h1>Seven Mountains</h1>
+          <p className="eyebrow">Candle Studio</p>
+        </button>
         <div className="header-search">
           <input
             type="search"
@@ -29,12 +29,6 @@ export default function Header({
           </button>
         </div>
       </div>
-      <nav className="header-nav">
-        <a href="#collections">Shop</a>
-        <a href="#best-sellers">Best Sellers</a>
-        <a href="#gifts">Gift Ideas</a>
-        <a href="#about">Our Story</a>
-      </nav>
     </header>
   );
 }

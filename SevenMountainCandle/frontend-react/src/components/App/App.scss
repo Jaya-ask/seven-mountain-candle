@@ -6,16 +6,18 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
+  overflow-x: hidden;
   font-family: "Manrope", sans-serif;
   color: var(--text);
   background:
     radial-gradient(circle at 12% 8%, rgba(164, 122, 72, 0.12), transparent 28%),
     radial-gradient(circle at 90% 16%, rgba(226, 210, 192, 0.38), transparent 30%),
-    linear-gradient(180deg, #fdfbf8 0%, #f7f2ea 48%, #f2e8db 100%);
+    linear-gradient(180deg, #efefef 0%, #f7f2ea 48%, #f2e8db 100%);
 }
 
 body::before {
@@ -90,6 +92,19 @@ button {
   margin-bottom: 22px;
 }
 
+.catalog-back-action {
+  margin-bottom: 18px;
+}
+
+.catalog-back-action button {
+  border: 1px solid rgba(45, 33, 24, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
 .catalog-heading h2,
 .operations-header h2 {
   margin: 0;
@@ -100,6 +115,12 @@ button {
 .catalog-heading h2 {
   font-size: 2.9rem;
   max-width: 12ch;
+}
+
+.catalog-heading .shop-heading-single-line {
+  max-width: none;
+  white-space: nowrap;
+  font-size: clamp(1.35rem, 2.6vw, 2.9rem);
 }
 
 .catalog-copy,
@@ -160,6 +181,38 @@ button {
   max-width: 14ch;
 }
 
+.scroll-top-button {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+  box-shadow: 0 14px 28px rgba(45, 33, 24, 0.2);
+  z-index: 19;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.scroll-top-button.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.scroll-top-button:hover {
+  transform: translateY(-2px);
+}
+
 @media (max-width: 980px) {
   .page-layout {
     grid-template-columns: 1fr;
@@ -188,8 +241,17 @@ button {
     font-size: 2.35rem;
   }
 
+  .catalog-heading .shop-heading-single-line {
+    white-space: normal;
+  }
+
   .catalog-summary-wrap {
     width: 100%;
     grid-template-columns: 1fr;
+  }
+
+  .scroll-top-button {
+    right: 16px;
+    bottom: 16px;
   }
 }
