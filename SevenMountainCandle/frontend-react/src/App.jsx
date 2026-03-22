@@ -4,6 +4,7 @@ import CartDrawer from "./components/CartDrawer/CartDrawer";
 import Footer from "./components/Footer/Footer";
 import StorefrontPage from "./components/StorefrontPage/StorefrontPage";
 import ShopPage from "./components/ShopPage/ShopPage";
+import CheckoutPage from "./components/CheckoutPage/CheckoutPage";
 import useCatalog from "./hooks/useCatalog";
 import useCart from "./hooks/useCart";
 
@@ -14,7 +15,11 @@ const currency = new Intl.NumberFormat("en-AE", {
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState(
-    window.location.hash === "#shop" ? "shop" : "home"
+    window.location.hash === "#checkout"
+      ? "checkout"
+      : window.location.hash === "#shop"
+        ? "shop"
+        : "home"
   );
   const [showScrollTop, setShowScrollTop] = useState(false);
   const {
@@ -34,12 +39,23 @@ export default function App() {
     cartCount,
     subtotal,
     addToCart,
-    updateQuantity
+    updateQuantity,
+    clearCart
   } = useCart();
 
   useEffect(() => {
     const syncPageWithHash = () => {
-      setCurrentPage(window.location.hash === "#shop" ? "shop" : "home");
+      if (window.location.hash === "#checkout") {
+        setCurrentPage("checkout");
+        return;
+      }
+
+      if (window.location.hash === "#shop") {
+        setCurrentPage("shop");
+        return;
+      }
+
+      setCurrentPage("home");
     };
 
     window.addEventListener("hashchange", syncPageWithHash);
@@ -60,6 +76,15 @@ export default function App() {
     setCurrentPage("shop");
     if (window.location.hash !== "#shop") {
       window.location.hash = "shop";
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goToCheckoutPage = () => {
+    setCurrentPage("checkout");
+    setCartOpen(false);
+    if (window.location.hash !== "#checkout") {
+      window.location.hash = "checkout";
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -86,7 +111,7 @@ export default function App() {
           featured={featured}
           onShopNow={goToShopPage}
         />
-      ) : (
+      ) : currentPage === "shop" ? (
         <ShopPage
           categories={catalog.categories}
           activeCategory={activeCategory}
@@ -96,6 +121,20 @@ export default function App() {
           priceRange={priceRange}
           onBackToStorefront={goToHomePage}
           currency={currency}
+        />
+      ) : (
+        <CheckoutPage
+          cart={cart}
+          subtotal={subtotal}
+          currency={currency}
+          onBackToShop={goToShopPage}
+          onPlaceOrder={() => {
+            setCartOpen(false);
+          }}
+          onContinueAfterOrder={() => {
+            clearCart();
+            goToShopPage();
+          }}
         />
       )}
       <button
@@ -112,6 +151,7 @@ export default function App() {
         subtotal={currency.format(subtotal)}
         onClose={() => setCartOpen(false)}
         onUpdateQuantity={updateQuantity}
+        onProceedToCheckout={goToCheckoutPage}
         currency={currency}
       />
       <Footer />

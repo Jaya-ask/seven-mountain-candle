@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import "./CartDrawer.scss";
 
 export default function CartDrawer({
@@ -7,6 +8,7 @@ export default function CartDrawer({
   subtotal,
   onClose,
   onUpdateQuantity,
+  onProceedToCheckout,
   currency
 }) {
   const drawerRef = useRef(null);
@@ -53,11 +55,20 @@ export default function CartDrawer({
         ) : (
           cart.map((item) => (
             <div className="cart-item" key={item.id}>
-              <div>
-                <strong>{item.name}</strong>
-                <p>
-                  {item.sku} · {currency.format(item.price)}
-                </p>
+              <div className="cart-item-main">
+                <div className="cart-thumb" aria-hidden="true">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.name} loading="lazy" />
+                  ) : (
+                    <span>{item.name.slice(0, 1)}</span>
+                  )}
+                </div>
+                <div>
+                  <strong>{item.name}</strong>
+                  <p>
+                    {item.sku} · {currency.format(item.price)}
+                  </p>
+                </div>
               </div>
               <div className="quantity-controls">
                 <button
@@ -73,6 +84,14 @@ export default function CartDrawer({
                 >
                   +
                 </button>
+                <button
+                  type="button"
+                  className="remove-item-button"
+                  aria-label={`Remove ${item.name} from cart`}
+                  onClick={() => onUpdateQuantity(item.id, 0)}
+                >
+                  <DeleteOutlineRoundedIcon fontSize="small" aria-hidden="true" />
+                </button>
               </div>
             </div>
           ))
@@ -83,7 +102,12 @@ export default function CartDrawer({
           <span>Subtotal</span>
           <strong>{subtotal}</strong>
         </div>
-        <button type="button" className="checkout-button">
+        <button
+          type="button"
+          className="checkout-button"
+          onClick={onProceedToCheckout}
+          disabled={cart.length === 0}
+        >
           Proceed to checkout
         </button>
       </div>

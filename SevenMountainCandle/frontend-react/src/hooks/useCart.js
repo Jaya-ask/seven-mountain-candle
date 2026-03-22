@@ -5,7 +5,7 @@ export default function useCart() {
   const [cartOpen, setCartOpen] = useState(false);
 
   const cartCount = useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    () => cart.length,
     [cart]
   );
 
@@ -39,6 +39,10 @@ export default function useCart() {
     );
   }
 
+  function clearCart() {
+    setCart([]);
+  }
+
   return {
     cart,
     cartOpen,
@@ -46,6 +50,7 @@ export default function useCart() {
     cartCount,
     subtotal,
     addToCart,
-    updateQuantity
+    updateQuantity,
+    clearCart
   };
 }

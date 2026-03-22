@@ -28,10 +28,10 @@ export default function useCatalog(currencyFormatter) {
 
   const filteredProducts = useMemo(() => {
     return catalog.products.filter((product) => {
-      const categoryMatch =
-        activeCategory === "All" || product.category === activeCategory;
-
       const normalizedSearch = search.trim().toLowerCase();
+      const isSearching = normalizedSearch !== "";
+      const categoryMatch =
+        isSearching || activeCategory === "All" || product.category === activeCategory;
       const notesText = Array.isArray(product.notes) ? product.notes.join(" ") : "";
       const searchableText = [
         product.name,
