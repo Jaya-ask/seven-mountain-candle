@@ -1,10 +1,24 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams
+} from "react-router-dom";
 import Header from "./components/Header/Header.jsx";
+import AuthPage from "./components/AuthPage/AuthPage";
 import CartDrawer from "./components/CartDrawer/CartDrawer";
 import Footer from "./components/Footer/Footer";
+import ProfilePage from "./components/ProfilePage/ProfilePage";
 import StorefrontPage from "./components/StorefrontPage/StorefrontPage";
 import ShopPage from "./components/ShopPage/ShopPage";
 import CheckoutPage from "./components/CheckoutPage/CheckoutPage";
+import ProductDetailsPage from "./components/ProductDetailsPage/ProductDetailsPage";
+import TrackOrderPage from "./components/TrackOrderPage/TrackOrderPage";
+import OrderDetailsPage from "./components/TrackOrderPage/OrderDetailsPage";
+import AdminPage from "./components/AdminPage/AdminPage";
 import useCatalog from "./hooks/useCatalog";
 import useCart from "./hooks/useCart";
 
@@ -13,15 +27,77 @@ const currency = new Intl.NumberFormat("en-AE", {
   currency: "AED"
 });
 
-export default function App() {
-  const [currentPage, setCurrentPage] = useState(
-    window.location.hash === "#checkout"
-      ? "checkout"
-      : window.location.hash === "#shop"
-        ? "shop"
-        : "home"
+function ProductDetailsRoute({
+  products,
+  onBackToShop,
+  onAddToCart,
+  onBuyNow,
+  onReviewSubmitted
+}) {
+  const { productId } = useParams();
+
+  const product = useMemo(() => {
+    if (!productId) {
+      return null;
+    }
+
+    const decodedProductId = decodeURIComponent(productId);
+    return products.find(
+      (entry) =>
+        entry.id === decodedProductId ||
+        entry.sku?.toLowerCase() === decodedProductId.toLowerCase()
+    ) || null;
+  }, [productId, products]);
+
+  return (
+    <ProductDetailsPage
+      product={product}
+      currency={currency}
+      onBackToShop={onBackToShop}
+      onAddToCart={onAddToCart}
+      onBuyNow={onBuyNow}
+      onReviewSubmitted={onReviewSubmitted}
+    />
   );
+}
+
+function TrackOrderDetailsRoute({
+  products,
+  onBackToTrackOrders
+}) {
+  const { orderNumber } = useParams();
+  const location = useLocation();
+
+  return (
+    <OrderDetailsPage
+      orderNumber={decodeURIComponent(orderNumber || "")}
+      currency={currency}
+      products={products}
+      onBackToTrackOrders={onBackToTrackOrders}
+      initialOrder={location.state?.order || null}
+    />
+  );
+}
+
+export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [authState, setAuthState] = useState(() => {
+    const token = window.localStorage.getItem("authToken") || "";
+    const rawUser = window.localStorage.getItem("authUser");
+
+    let user = null;
+    if (rawUser) {
+      try {
+        user = JSON.parse(rawUser);
+      } catch {
+        user = null;
+      }
+    }
+
+    return { token, user };
+  });
   const {
     catalog,
     featured,
@@ -29,6 +105,7 @@ export default function App() {
     setActiveCategory,
     search,
     setSearch,
+    refreshCatalog,
     filteredProducts,
     priceRange
   } = useCatalog(currency);
@@ -43,24 +120,25 @@ export default function App() {
     clearCart
   } = useCart();
 
-  useEffect(() => {
-    const syncPageWithHash = () => {
-      if (window.location.hash === "#checkout") {
-        setCurrentPage("checkout");
-        return;
-      }
+  const isLoggedIn = Boolean(authState.token);
+  const isAdmin = authState.user?.role === "admin";
 
-      if (window.location.hash === "#shop") {
-        setCurrentPage("shop");
-        return;
-      }
-
-      setCurrentPage("home");
-    };
-
-    window.addEventListener("hashchange", syncPageWithHash);
-    return () => window.removeEventListener("hashchange", syncPageWithHash);
-  }, []);
+  const currentPage =
+    location.pathname === "/checkout"
+      ? "checkout"
+      : location.pathname === "/auth"
+        ? "auth"
+        : location.pathname === "/profile"
+          ? "profile"
+      : location.pathname === "/admin"
+        ? "admin"
+      : location.pathname === "/track-order" || location.pathname.startsWith("/track-order/")
+        ? "track-order"
+      : location.pathname === "/shop"
+        ? "shop"
+        : location.pathname.startsWith("/product/")
+          ? "product-details"
+          : "home";
 
   useEffect(() => {
     const onWindowScroll = () => {
@@ -72,29 +150,112 @@ export default function App() {
     return () => window.removeEventListener("scroll", onWindowScroll);
   }, []);
 
-  const goToShopPage = () => {
-    setCurrentPage("shop");
-    if (window.location.hash !== "#shop") {
-      window.location.hash = "shop";
+  useEffect(() => {
+    if (authState.token) {
+      window.localStorage.setItem("authToken", authState.token);
+    } else {
+      window.localStorage.removeItem("authToken");
     }
+
+    if (authState.user) {
+      window.localStorage.setItem("authUser", JSON.stringify(authState.user));
+    } else {
+      window.localStorage.removeItem("authUser");
+    }
+  }, [authState]);
+
+  const goToShopPage = () => {
+    navigate("/shop");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const goToCheckoutPage = () => {
-    setCurrentPage("checkout");
     setCartOpen(false);
-    if (window.location.hash !== "#checkout") {
-      window.location.hash = "checkout";
-    }
+
+    navigate("/checkout");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const goToHomePage = () => {
-    setCurrentPage("home");
-    if (window.location.hash) {
-      history.replaceState(null, "", window.location.pathname + window.location.search);
-    }
+    navigate("/");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goToTrackOrderPage = () => {
+    navigate("/track-order");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goToAdminPage = () => {
+    navigate("/admin");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goToProfilePage = () => {
+    if (!isLoggedIn) {
+      navigate("/auth");
+    } else if (isAdmin) {
+      navigate("/admin");
+    } else {
+      navigate("/profile");
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleLoginSuccess = ({ token, user }) => {
+    setAuthState({ token, user: user || null });
+  };
+
+  const handleAuthUserUpdate = useCallback((nextUser) => {
+    setAuthState((current) => ({
+      ...current,
+      user: nextUser || current.user
+    }));
+  }, []);
+
+  const handleLogout = () => {
+    setAuthState({ token: "", user: null });
+    navigate("/");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goToOrderDetailsPage = (order) => {
+    const encodedOrderNumber = encodeURIComponent(order.orderNumber);
+    navigate(`/track-order/${encodedOrderNumber}`, {
+      state: { order }
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goToProductDetailsPage = (product) => {
+    const encodedProductId = encodeURIComponent(product.id);
+    navigate(`/product/${encodedProductId}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const buyNow = (product) => {
+    addToCart(product);
+    goToCheckoutPage();
+  };
+
+  const placeOrder = async (payload) => {
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const responsePayload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(responsePayload?.message || "Failed to place order.");
+    }
+
+    setCartOpen(false);
+    return responsePayload;
   };
 
   return (
@@ -105,53 +266,144 @@ export default function App() {
         search={search}
         onSearchChange={setSearch}
         onBrandClick={goToHomePage}
+        onTrackOrderClick={goToTrackOrderPage}
+        onManageOrdersClick={goToAdminPage}
+        onAuthClick={goToProfilePage}
+        onLogoutClick={handleLogout}
+        isLoggedIn={isLoggedIn}
+        isAdmin={isAdmin}
+        userName={authState.user?.name || ""}
+        page={currentPage}
       />
-      {currentPage === "home" ? (
-        <StorefrontPage
-          featured={featured}
-          onShopNow={goToShopPage}
-        />
-      ) : currentPage === "shop" ? (
-        <ShopPage
-          categories={catalog.categories}
-          activeCategory={activeCategory}
-          onSelectCategory={setActiveCategory}
-          filteredProducts={filteredProducts}
-          onAddToCart={addToCart}
-          priceRange={priceRange}
-          onBackToStorefront={goToHomePage}
-          currency={currency}
-        />
-      ) : (
-        <CheckoutPage
-          cart={cart}
-          subtotal={subtotal}
-          currency={currency}
-          onBackToShop={goToShopPage}
-          onPlaceOrder={() => {
-            setCartOpen(false);
-          }}
-          onContinueAfterOrder={() => {
-            clearCart();
-            goToShopPage();
-          }}
-        />
-      )}
-      <button
-        type="button"
-        className={`scroll-top-button${showScrollTop ? " visible" : ""}`}
-        aria-label="Scroll to top"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      >
-        ↑
-      </button>
+      <main className="app-main">
+        <Routes>
+          <Route
+            path="/"
+            element={(
+              <StorefrontPage
+                featured={featured}
+                onShopNow={goToShopPage}
+              />
+            )}
+          />
+          <Route
+            path="/shop"
+            element={(
+              <ShopPage
+                categories={catalog.categories}
+                activeCategory={activeCategory}
+                onSelectCategory={setActiveCategory}
+                filteredProducts={filteredProducts}
+                onAddToCart={addToCart}
+                onProductSelect={goToProductDetailsPage}
+                priceRange={priceRange}
+                currency={currency}
+              />
+            )}
+          />
+          <Route
+            path="/product/:productId"
+            element={(
+              <ProductDetailsRoute
+                products={catalog.products}
+                onBackToShop={goToShopPage}
+                onAddToCart={addToCart}
+                onBuyNow={buyNow}
+                onReviewSubmitted={refreshCatalog}
+              />
+            )}
+          />
+          <Route
+            path="/track-order"
+            element={(
+              <TrackOrderPage
+                currency={currency}
+                products={catalog.products}
+                onBackToShop={goToShopPage}
+                onViewOrderDetails={goToOrderDetailsPage}
+                isLoggedIn={isLoggedIn}
+                authToken={authState.token}
+              />
+            )}
+          />
+          <Route
+            path="/track-order/:orderNumber"
+            element={(
+              <TrackOrderDetailsRoute
+                products={catalog.products}
+                onBackToTrackOrders={goToTrackOrderPage}
+              />
+            )}
+          />
+          <Route
+            path="/admin"
+            element={
+              !isLoggedIn
+                ? <Navigate to="/auth?redirect=%2Fadmin" replace />
+                : isAdmin
+                  ? (
+                    <AdminPage
+                      authToken={authState.token}
+                      currency={currency}
+                      onViewOrderDetails={goToOrderDetailsPage}
+                    />
+                  )
+                  : <Navigate to="/" replace />
+            }
+          />
+          <Route
+            path="/auth"
+            element={
+              isLoggedIn
+                ? <Navigate to="/" replace />
+                : <AuthPage onLoginSuccess={handleLoginSuccess} />
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              isLoggedIn
+                ? <ProfilePage user={authState.user} onLogout={handleLogout} />
+                : <Navigate to="/auth?redirect=%2Fprofile" replace />
+            }
+          />
+          <Route
+            path="/checkout"
+            element={(
+              <CheckoutPage
+                cart={cart}
+                subtotal={subtotal}
+                currency={currency}
+                authToken={authState.token}
+                authUser={authState.user}
+                onAuthUserUpdate={handleAuthUserUpdate}
+                onBackToShop={goToShopPage}
+                onPlaceOrder={placeOrder}
+                onContinueAfterOrder={() => {
+                  clearCart();
+                  goToShopPage();
+                }}
+              />
+            )}
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <button
+          type="button"
+          className={`scroll-top-button${showScrollTop ? " visible" : ""}`}
+          aria-label="Scroll to top"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        >
+          ↑
+        </button>
+      </main>
       <CartDrawer
         open={cartOpen}
         cart={cart}
-        subtotal={currency.format(subtotal)}
         onClose={() => setCartOpen(false)}
         onUpdateQuantity={updateQuantity}
         onProceedToCheckout={goToCheckoutPage}
+        onShopNow={goToShopPage}
         currency={currency}
       />
       <Footer />

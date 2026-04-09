@@ -7,8 +7,8 @@ export default function ShopPage({
   onSelectCategory,
   filteredProducts,
   onAddToCart,
+  onProductSelect,
   priceRange,
-  onBackToStorefront,
   currency
 }) {
   return (
@@ -41,15 +41,10 @@ export default function ShopPage({
           </div>
         </div>
 
-        <div className="catalog-back-action">
-          <button type="button" onClick={onBackToStorefront}>
-            Back to storefront
-          </button>
-        </div>
-
         <ProductGrid
           products={filteredProducts}
           onAddToCart={onAddToCart}
+          onProductSelect={onProductSelect}
           currency={currency}
         />
       </section>

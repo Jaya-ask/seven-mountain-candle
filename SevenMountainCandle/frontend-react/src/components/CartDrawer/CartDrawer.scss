@@ -62,6 +62,32 @@
   color: var(--muted);
 }
 
+.empty-cart p {
+  margin: 0;
+}
+
+.empty-cart-link {
+  margin-top: 8px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.empty-cart-link:hover {
+  color: var(--accent);
+}
+
+.empty-cart-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 58%, #fff 42%);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .cart-item {
   align-items: center;
   padding-bottom: 14px;

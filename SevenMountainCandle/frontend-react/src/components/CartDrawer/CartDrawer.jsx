@@ -9,6 +9,7 @@ export default function CartDrawer({
   onClose,
   onUpdateQuantity,
   onProceedToCheckout,
+  onShopNow,
   currency
 }) {
   const drawerRef = useRef(null);
@@ -33,6 +34,14 @@ export default function CartDrawer({
     };
   }, [open, onClose]);
 
+  function handleShopNowClick() {
+    onClose();
+
+    if (typeof onShopNow === "function") {
+      onShopNow();
+    }
+  }
+
   return (
     <aside ref={drawerRef} className={`cart-drawer ${open ? "open" : ""}`}>
       <div className="cart-header">
@@ -51,7 +60,12 @@ export default function CartDrawer({
       </div>
       <div className="cart-items">
         {cart.length === 0 ? (
-          <p className="empty-cart">Your cart is empty.</p>
+          <div className="empty-cart">
+            <p>Your cart is empty.</p>
+            <button type="button" className="empty-cart-link" onClick={handleShopNowClick}>
+              Shop now
+            </button>
+          </div>
         ) : (
           cart.map((item) => (
             <div className="cart-item" key={item.id}>

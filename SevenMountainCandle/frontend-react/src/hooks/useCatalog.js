@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function useCatalog(currencyFormatter) {
   const [catalog, setCatalog] = useState({ categories: [], products: [] });
@@ -7,24 +7,24 @@ export default function useCatalog(currencyFormatter) {
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
 
+  const refreshCatalog = useCallback(async () => {
+    const [catalogResponse, featuredResponse] = await Promise.all([
+      fetch("/api/catalog"),
+      fetch("/api/products/featured")
+    ]);
+
+    const catalogData = await catalogResponse.json();
+    const featuredData = await featuredResponse.json();
+    setCatalog(catalogData);
+    setSupportingData(catalogData.supportingData);
+    setFeatured(featuredData);
+  }, []);
+
   useEffect(() => {
-    async function loadStore() {
-      const [catalogResponse, featuredResponse] = await Promise.all([
-        fetch("/api/catalog"),
-        fetch("/api/products/featured")
-      ]);
-
-      const catalogData = await catalogResponse.json();
-      const featuredData = await featuredResponse.json();
-      setCatalog(catalogData);
-      setSupportingData(catalogData.supportingData);
-      setFeatured(featuredData);
-    }
-
-    loadStore().catch((error) => {
+    refreshCatalog().catch((error) => {
       console.error("Unable to load storefront", error);
     });
-  }, []);
+  }, [refreshCatalog]);
 
   const filteredProducts = useMemo(() => {
     return catalog.products.filter((product) => {
@@ -72,6 +72,7 @@ export default function useCatalog(currencyFormatter) {
     setActiveCategory,
     search,
     setSearch,
+    refreshCatalog,
     filteredProducts,
     priceRange
   };

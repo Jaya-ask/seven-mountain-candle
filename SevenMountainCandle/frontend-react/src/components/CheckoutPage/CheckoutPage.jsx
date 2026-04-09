@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./CheckoutPage.scss";
 
 const initialForm = {
@@ -7,18 +7,45 @@ const initialForm = {
   phone: "",
   address: "",
   city: "",
+  addressTag: "Home",
   paymentMethod: "card"
 };
+
+function isValidPhoneNumber(phoneValue) {
+  const trimmedPhone = phoneValue?.toString().trim() || "";
+
+  // Allow common phone characters while enforcing a realistic digit count.
+  if (!/^\+?[0-9\s()-]+$/.test(trimmedPhone)) {
+    return false;
+  }
+
+  const digitCount = (trimmedPhone.match(/\d/g) || []).length;
+  return digitCount >= 8 && digitCount <= 15;
+}
 
 export default function CheckoutPage({
   cart,
   subtotal,
   currency,
+  authToken,
+  authUser,
+  onAuthUserUpdate,
   onBackToShop,
   onPlaceOrder,
   onContinueAfterOrder
 }) {
   const [form, setForm] = useState(initialForm);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [newAddressModalOpen, setNewAddressModalOpen] = useState(false);
+  const [newAddressDraft, setNewAddressDraft] = useState({
+    address: "",
+    city: "",
+    tag: "Home"
+  });
+  const [newAddressErrors, setNewAddressErrors] = useState({});
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [addressSaving, setAddressSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [checkoutHint, setCheckoutHint] = useState("");
@@ -28,6 +55,7 @@ export default function CheckoutPage({
   const [orderConfirmationOpen, setOrderConfirmationOpen] = useState(false);
   const [orderId, setOrderId] = useState("");
   const shippingLinkRef = useRef(null);
+  const isLoggedInUser = Boolean(authToken);
 
   const totalItems = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
@@ -46,13 +74,195 @@ export default function CheckoutPage({
     return 0;
   }, [shippingLocation]);
 
+  useEffect(() => {
+    if (!authUser) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      fullName: authUser.name || current.fullName,
+      email: authUser.email || current.email,
+      phone: authUser.phone || current.phone,
+      address: authUser.address || current.address,
+      city: authUser.city || current.city
+    }));
+  }, [authUser]);
+
+  useEffect(() => {
+    if (!authToken) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function loadProfile() {
+      setProfileLoading(true);
+
+      try {
+        const response = await fetch("/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(payload?.message || "Unable to load profile.");
+        }
+
+        if (isCancelled) {
+          return;
+        }
+
+        const addresses = Array.isArray(payload.addresses) ? payload.addresses : [];
+        const recentAddress = payload.recentAddress || addresses[0] || null;
+
+        setSavedAddresses(addresses);
+        setSelectedAddressId(recentAddress?.id ? String(recentAddress.id) : "");
+        setForm((current) => ({
+          ...current,
+          fullName: payload.user?.name || current.fullName,
+          email: payload.user?.email || current.email,
+          phone: payload.user?.phone || current.phone,
+          address: recentAddress?.address || current.address,
+          city: recentAddress?.city || current.city,
+          addressTag: recentAddress?.tag || current.addressTag || "Home"
+        }));
+
+        if (payload.user && typeof onAuthUserUpdate === "function") {
+          onAuthUserUpdate(payload.user);
+        }
+      } catch (profileError) {
+        if (!isCancelled) {
+          setCheckoutHint(profileError?.message || "Unable to load saved addresses.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setProfileLoading(false);
+        }
+      }
+    }
+
+    loadProfile();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [authToken]);
+
   const grandTotal = subtotal + shippingCharge;
-  const isPlaceOrderDisabled = !shippingLocation;
+  const isPlaceOrderDisabled = !shippingLocation || profileLoading || addressSaving;
 
   function handleInputChange(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
     setErrors((current) => ({ ...current, [name]: "" }));
+  }
+
+  function handleSavedAddressChange(event) {
+    const nextAddressId = event.target.value;
+
+    if (nextAddressId === "new") {
+      setNewAddressDraft({ address: "", city: "", tag: "Home" });
+      setNewAddressErrors({});
+      setNewAddressModalOpen(true);
+      return;
+    }
+
+    setSelectedAddressId(nextAddressId);
+
+    const selectedAddress = savedAddresses.find((entry) => String(entry.id) === nextAddressId);
+    if (!selectedAddress) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      address: selectedAddress.address,
+      city: selectedAddress.city,
+      addressTag: selectedAddress.tag || "Address"
+    }));
+    setErrors((current) => ({ ...current, address: "", city: "" }));
+  }
+
+  function handleNewAddressDraftChange(event) {
+    const { name, value } = event.target;
+    setNewAddressDraft((current) => ({ ...current, [name]: value }));
+    setNewAddressErrors((current) => ({ ...current, [name]: "" }));
+  }
+
+  async function saveNewAddress() {
+    if (!isLoggedInUser) {
+      return;
+    }
+
+    const validationErrors = {};
+    if (!newAddressDraft.address.trim()) {
+      validationErrors.address = "Address is required.";
+    }
+
+    if (!newAddressDraft.city.trim()) {
+      validationErrors.city = "City is required.";
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setNewAddressErrors(validationErrors);
+      return;
+    }
+
+    setAddressSaving(true);
+
+    try {
+      const response = await fetch("/api/auth/addresses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          address: newAddressDraft.address,
+          city: newAddressDraft.city,
+          tag: newAddressDraft.tag || "Address"
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload?.message || "Unable to save new address.");
+      }
+
+      const createdAddress = payload.address;
+
+      if (createdAddress) {
+        setSavedAddresses((current) => [
+          createdAddress,
+          ...current.filter((entry) => String(entry.id) !== String(createdAddress.id))
+        ]);
+        setSelectedAddressId(String(createdAddress.id));
+        setForm((current) => ({
+          ...current,
+          address: createdAddress.address,
+          city: createdAddress.city,
+          addressTag: createdAddress.tag || "Address"
+        }));
+      }
+
+      if (typeof onAuthUserUpdate === "function") {
+        onAuthUserUpdate({
+          ...authUser,
+          address: newAddressDraft.address,
+          city: newAddressDraft.city
+        });
+      }
+
+      setNewAddressModalOpen(false);
+      setNewAddressErrors({});
+    } finally {
+      setAddressSaving(false);
+    }
   }
 
   function validateForm() {
@@ -68,6 +278,8 @@ export default function CheckoutPage({
 
     if (!form.phone.trim()) {
       nextErrors.phone = "Phone number is required.";
+    } else if (!isValidPhoneNumber(form.phone)) {
+      nextErrors.phone = "Enter a valid phone number.";
     }
 
     if (!form.address.trim()) {
@@ -81,7 +293,7 @@ export default function CheckoutPage({
     return nextErrors;
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     if (!shippingLocation) {
@@ -99,22 +311,26 @@ export default function CheckoutPage({
       return;
     }
 
-    onPlaceOrder({
-      customer: form,
-      items: cart,
-      subtotal,
-      shippingCharge,
-      shippingLocation,
-      total: grandTotal,
-      paymentMethod: form.paymentMethod
-    });
+    try {
+      const orderResponse = await onPlaceOrder({
+        customer: form,
+        items: cart,
+        subtotal,
+        shippingCharge,
+        shippingLocation,
+        total: grandTotal,
+        paymentMethod: form.paymentMethod
+      });
 
-    const generatedOrderId = `SMC-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
-    setOrderId(generatedOrderId);
-    setOrderPlaced(true);
-    setOrderConfirmationOpen(true);
-    setForm(initialForm);
-    setErrors({});
+      setOrderId(orderResponse?.orderId || orderResponse?.orderNumber || "");
+      setOrderPlaced(true);
+      setOrderConfirmationOpen(true);
+      setForm((current) => ({ ...current }));
+      setErrors({});
+      setCheckoutHint("");
+    } catch (submitError) {
+      setCheckoutHint(submitError?.message || "Unable to place order right now.");
+    }
   }
 
   function openShippingModal() {
@@ -156,6 +372,7 @@ export default function CheckoutPage({
               name="fullName"
               value={form.fullName}
               onChange={handleInputChange}
+              disabled={isLoggedInUser}
             />
             {errors.fullName ? <span className="field-error">{errors.fullName}</span> : null}
           </label>
@@ -167,6 +384,7 @@ export default function CheckoutPage({
               name="email"
               value={form.email}
               onChange={handleInputChange}
+              disabled={isLoggedInUser}
             />
             {errors.email ? <span className="field-error">{errors.email}</span> : null}
           </label>
@@ -178,18 +396,49 @@ export default function CheckoutPage({
               name="phone"
               value={form.phone}
               onChange={handleInputChange}
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="Enter valid phone number"
+              disabled={isLoggedInUser}
             />
             {errors.phone ? <span className="field-error">{errors.phone}</span> : null}
           </label>
 
           <label>
             Address
-            <input
-              type="text"
-              name="address"
-              value={form.address}
-              onChange={handleInputChange}
-            />
+            {isLoggedInUser ? (
+              <>
+                <div className="address-select-row">
+                  <select value={selectedAddressId} onChange={handleSavedAddressChange}>
+                    <option value="" disabled>Select saved address</option>
+                    {savedAddresses.map((entry) => (
+                      <option key={entry.id} value={String(entry.id)}>
+                        {entry.tag}: {entry.address}, {entry.city}
+                      </option>
+                    ))}
+                    <option value="new">Add new address</option>
+                  </select>
+                  <button
+                    type="button"
+                    className="inline-link"
+                    onClick={() => {
+                      setNewAddressDraft({ address: "", city: "", tag: "Home" });
+                      setNewAddressErrors({});
+                      setNewAddressModalOpen(true);
+                    }}
+                  >
+                    Add new address
+                  </button>
+                </div>
+              </>
+            ) : (
+              <input
+                type="text"
+                name="address"
+                value={form.address}
+                onChange={handleInputChange}
+              />
+            )}
             {errors.address ? <span className="field-error">{errors.address}</span> : null}
           </label>
 
@@ -200,9 +449,69 @@ export default function CheckoutPage({
               name="city"
               value={form.city}
               onChange={handleInputChange}
+              readOnly={isLoggedInUser}
             />
             {errors.city ? <span className="field-error">{errors.city}</span> : null}
           </label>
+
+          {isLoggedInUser && newAddressModalOpen ? (
+            <div className="address-modal-backdrop" role="presentation">
+              <div className="address-modal" role="dialog" aria-modal="true" aria-labelledby="add-address-title">
+                <h3 id="add-address-title">Add new address</h3>
+
+                <label>
+                  Address
+                  <input
+                    type="text"
+                    name="address"
+                    value={newAddressDraft.address}
+                    onChange={handleNewAddressDraftChange}
+                    placeholder="Flat/Villa, Street, Area"
+                  />
+                  {newAddressErrors.address ? <span className="field-error">{newAddressErrors.address}</span> : null}
+                </label>
+
+                <label>
+                  City
+                  <input
+                    type="text"
+                    name="city"
+                    value={newAddressDraft.city}
+                    onChange={handleNewAddressDraftChange}
+                    placeholder="Dubai"
+                  />
+                  {newAddressErrors.city ? <span className="field-error">{newAddressErrors.city}</span> : null}
+                </label>
+
+                <label>
+                  Address Tag
+                  <input
+                    type="text"
+                    name="tag"
+                    value={newAddressDraft.tag}
+                    onChange={handleNewAddressDraftChange}
+                    placeholder="Home, Office, Other"
+                  />
+                </label>
+
+                <div className="address-modal-actions">
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => {
+                      setNewAddressModalOpen(false);
+                      setNewAddressErrors({});
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button type="button" onClick={saveNewAddress} disabled={addressSaving}>
+                    {addressSaving ? "Saving..." : "Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <label>
             Payment Method
@@ -225,7 +534,11 @@ export default function CheckoutPage({
               type="submit"
               aria-disabled={isPlaceOrderDisabled}
               className={isPlaceOrderDisabled ? "pseudo-disabled" : ""}
-              title={isPlaceOrderDisabled ? "Finish shipping calculation" : ""}
+              title={
+                isPlaceOrderDisabled
+                  ? (addressSaving ? "Saving address..." : "Finish shipping calculation")
+                  : ""
+              }
             >
               Place order
             </button>

@@ -1,0 +1,110 @@
+.auth-page {
+  max-width: 620px;
+  margin: 28px auto 36px;
+  padding: 0 24px;
+}
+
+.auth-panel {
+  border: 1px solid rgba(45, 33, 24, 0.09);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 249, 0.92), rgba(246, 237, 227, 0.9)),
+    linear-gradient(135deg, rgba(207, 187, 164, 0.06), rgba(164, 122, 72, 0.08));
+  box-shadow: var(--shadow);
+}
+
+.align-center {
+  text-align: center;
+}
+
+.auth-panel h2 {
+  margin: 0;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(2rem, 4.2vw, 2.6rem);
+  line-height: 0.95;
+}
+
+.auth-mode-toggle {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.auth-mode-toggle button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 10px 12px;
+}
+
+.auth-mode-toggle button.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.auth-form input {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.auth-form button {
+  margin-top: 4px;
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  font-weight: 700;
+}
+
+.auth-form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-message {
+  margin: 14px 0 0;
+  font-size: 0.92rem;
+}
+
+.auth-message.error {
+  color: #b43737;
+}
+
+.auth-message.success {
+  color: #2d7f44;
+}
+
+@media (max-width: 640px) {
+  .auth-page {
+    padding: 0 16px;
+    margin-top: 18px;
+  }
+
+  .auth-panel {
+    padding: 20px;
+  }
+}

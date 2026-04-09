@@ -44,6 +44,74 @@
   background: #fff;
 }
 
+.checkout-form-panel input:disabled {
+  background: rgba(245, 240, 233, 0.8);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.checkout-form-panel input[readonly] {
+  background: rgba(250, 246, 240, 0.85);
+}
+
+.address-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.address-select-row select {
+  flex: 1;
+}
+
+.address-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(22, 17, 12, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 44;
+  padding: 16px;
+}
+
+.address-modal {
+  width: min(460px, 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(45, 33, 24, 0.1);
+  background: #fffaf4;
+  box-shadow: 0 24px 44px rgba(24, 18, 13, 0.22);
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.address-modal h3 {
+  margin: 0;
+}
+
+.address-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.address-modal-actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-weight: 600;
+}
+
+.address-modal-actions .secondary {
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.address-modal-actions button:not(.secondary) {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+}
+
 .field-error {
   color: #a13939;
   font-size: 0.8rem;
