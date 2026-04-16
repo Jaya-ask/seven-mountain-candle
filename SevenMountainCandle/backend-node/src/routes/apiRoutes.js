@@ -7,7 +7,11 @@ import {
   register
 } from "../controllers/authController.js";
 import {
+  createAdminProductHandler,
+  deleteAdminProductHandler,
   getAdminOrders,
+  getAdminProducts,
+  updateAdminProductHandler,
   updateAdminExpectedDeliveryDate,
   updateAdminOrderStatus
 } from "../controllers/adminController.js";
@@ -49,5 +53,9 @@ apiRoutes.get("/orders/mine", requireAuth, asyncHandler(getMyOrders));
 apiRoutes.get("/admin/orders", requireAuth, requireAdmin, asyncHandler(getAdminOrders));
 apiRoutes.patch("/admin/orders/:orderNumber/status", requireAuth, requireAdmin, asyncHandler(updateAdminOrderStatus));
 apiRoutes.patch("/admin/orders/:orderNumber/expected-delivery-date", requireAuth, requireAdmin, asyncHandler(updateAdminExpectedDeliveryDate));
+apiRoutes.get("/admin/products", requireAuth, requireAdmin, asyncHandler(getAdminProducts));
+apiRoutes.post("/admin/products", requireAuth, requireAdmin, asyncHandler(createAdminProductHandler));
+apiRoutes.put("/admin/products/:productSku", requireAuth, requireAdmin, asyncHandler(updateAdminProductHandler));
+apiRoutes.delete("/admin/products/:productSku", requireAuth, requireAdmin, asyncHandler(deleteAdminProductHandler));
 
 export default apiRoutes;

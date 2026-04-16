@@ -10,6 +10,7 @@ export default function Header({
   onBrandClick,
   onTrackOrderClick,
   onManageOrdersClick,
+  onManageProductsClick,
   onAuthClick,
   onLogoutClick,
   isLoggedIn,
@@ -80,7 +81,10 @@ export default function Header({
         ) : null}
         <div className="header-actions">
           {isAdmin ? (
-            <button type="button" onClick={onManageOrdersClick}>Manage Orders</button>
+            <>
+              <button type="button" onClick={onManageOrdersClick}>Manage Orders</button>
+              <button type="button" onClick={onManageProductsClick}>Manage Products</button>
+            </>
           ) : null}
           <button type="button" onClick={onTrackOrderClick}>
             {isLoggedIn ? "My Orders" : "Track order"}

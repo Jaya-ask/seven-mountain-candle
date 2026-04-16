@@ -19,6 +19,7 @@ import ProductDetailsPage from "./components/ProductDetailsPage/ProductDetailsPa
 import TrackOrderPage from "./components/TrackOrderPage/TrackOrderPage";
 import OrderDetailsPage from "./components/TrackOrderPage/OrderDetailsPage";
 import AdminPage from "./components/AdminPage/AdminPage";
+import ManageProductsPage from "./components/ManageProductsPage/ManageProductsPage";
 import useCatalog from "./hooks/useCatalog";
 import useCart from "./hooks/useCart";
 
@@ -130,6 +131,8 @@ export default function App() {
         ? "auth"
         : location.pathname === "/profile"
           ? "profile"
+      : location.pathname === "/admin/products"
+        ? "admin-products"
       : location.pathname === "/admin"
         ? "admin"
       : location.pathname === "/track-order" || location.pathname.startsWith("/track-order/")
@@ -188,6 +191,11 @@ export default function App() {
 
   const goToAdminPage = () => {
     navigate("/admin");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goToManageProductsPage = () => {
+    navigate("/admin/products");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -268,6 +276,7 @@ export default function App() {
         onBrandClick={goToHomePage}
         onTrackOrderClick={goToTrackOrderPage}
         onManageOrdersClick={goToAdminPage}
+        onManageProductsClick={goToManageProductsPage}
         onAuthClick={goToProfilePage}
         onLogoutClick={handleLogout}
         isLoggedIn={isLoggedIn}
@@ -348,6 +357,16 @@ export default function App() {
                       onViewOrderDetails={goToOrderDetailsPage}
                     />
                   )
+                  : <Navigate to="/" replace />
+            }
+          />
+          <Route
+            path="/admin/products"
+            element={
+              !isLoggedIn
+                ? <Navigate to="/auth?redirect=%2Fadmin%2Fproducts" replace />
+                : isAdmin
+                  ? <ManageProductsPage authToken={authState.token} onCatalogRefresh={refreshCatalog} />
                   : <Navigate to="/" replace />
             }
           />

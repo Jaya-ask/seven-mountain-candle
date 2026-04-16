@@ -3,6 +3,12 @@ import {
   updateExpectedDeliveryDateForAdmin,
   updateOrderStatusForAdmin
 } from "../services/orderService.js";
+import {
+  createAdminProduct,
+  deleteAdminProduct,
+  getAdminProductsPayload,
+  updateAdminProduct
+} from "../services/adminProductService.js";
 
 export async function getAdminOrders(_request, response) {
   const ordersPayload = await getAllOrdersForAdmin();
@@ -30,5 +36,29 @@ export async function updateAdminExpectedDeliveryDate(request, response) {
     expectedDeliveryDate
   });
 
+  response.status(200).json(payload);
+}
+
+export async function getAdminProducts(_request, response) {
+  const payload = await getAdminProductsPayload();
+  response.json(payload);
+}
+
+export async function createAdminProductHandler(request, response) {
+  const payload = await createAdminProduct(request.body || {});
+  response.status(201).json(payload);
+}
+
+export async function updateAdminProductHandler(request, response) {
+  const payload = await updateAdminProduct({
+    existingSku: request.params.productSku,
+    payload: request.body || {}
+  });
+
+  response.status(200).json(payload);
+}
+
+export async function deleteAdminProductHandler(request, response) {
+  const payload = await deleteAdminProduct(request.params.productSku);
   response.status(200).json(payload);
 }
