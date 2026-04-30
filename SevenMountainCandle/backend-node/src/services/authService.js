@@ -41,7 +41,7 @@ export async function registerUser(payload) {
 
     const existingCustomerResult = await client.query(
       `
-        SELECT id, has_account
+        SELECT id, password_hash
         FROM customer
         WHERE lower(email) = lower($1)
         LIMIT 1
@@ -49,7 +49,7 @@ export async function registerUser(payload) {
       [email]
     );
 
-    if (existingCustomerResult.rows[0]?.has_account) {
+    if (existingCustomerResult.rows[0]?.password_hash) {
       throw new AppError("An account with this email already exists.", 409);
     }
 
@@ -60,21 +60,19 @@ export async function registerUser(payload) {
           email,
           phone,
           password_hash,
-          has_account,
           role
         )
-        VALUES ($1, $2, $3, $4, $5, $6)
+        VALUES ($1, $2, $3, $4, $5)
         ON CONFLICT (email)
         DO UPDATE SET
           full_name = EXCLUDED.full_name,
           phone = EXCLUDED.phone,
           password_hash = EXCLUDED.password_hash,
-          has_account = TRUE,
           role = 'customer',
           updated_at = NOW()
         RETURNING id
       `,
-      [userName, email, phone, passwordHash, true, "customer"]
+      [userName, email, phone, passwordHash, "customer"]
     );
 
     const customerId = customerUpsertResult.rows[0]?.id;
@@ -147,7 +145,6 @@ export async function loginUser({ email, password }) {
         c.role
       FROM customer c
       WHERE lower(c.email) = lower($1)
-        AND c.has_account = TRUE
       LIMIT 1
     `,
     [normalizedEmail]

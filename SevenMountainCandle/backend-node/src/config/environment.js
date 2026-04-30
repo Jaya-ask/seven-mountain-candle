@@ -26,7 +26,7 @@ export const DB_CONFIG = process.env.DATABASE_URL
       database: process.env.PGDATABASE
     };
 
-export const DATABASE_NAME = process.env.PGDATABASE || "sevenmountain";
+export const DATABASE_NAME = process.env.PGDATABASE;
 
 export const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
 export const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || "";

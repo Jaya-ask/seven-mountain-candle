@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE customer
+  DROP COLUMN IF EXISTS has_account;
+
+COMMIT;

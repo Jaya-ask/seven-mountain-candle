@@ -162,7 +162,6 @@ export async function placeOrder(payload, { authUserId = null } = {}) {
       orderNumber: insertedOrder.order_number,
       customerId: insertedOrder.customer_id,
       customerAddressId: insertedOrder.customer_address_id,
-      customerHasAccount: insertedOrder.customer_has_account,
       status: insertedOrder.status,
       subtotal,
       shippingCharge: parsedShippingCharge,

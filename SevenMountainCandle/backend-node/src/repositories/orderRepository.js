@@ -82,7 +82,7 @@ export async function createSalesOrder(order, items, { authenticatedUserId = nul
     if (authenticatedUserId) {
       const customerResult = await client.query(
         `
-          SELECT id, has_account
+          SELECT id
           FROM customer
           WHERE id = $1
           LIMIT 1
@@ -185,8 +185,7 @@ export async function createSalesOrder(order, items, { authenticatedUserId = nul
 
     const insertedOrder = {
       ...orderInsertResult.rows[0],
-      status: status.name,
-      customer_has_account: Boolean(customer?.has_account)
+      status: status.name
     };
 
     for (const item of items) {
