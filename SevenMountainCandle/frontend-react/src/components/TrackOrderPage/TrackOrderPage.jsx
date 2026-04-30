@@ -203,6 +203,12 @@ export default function TrackOrderPage({
               />
             </label>
 
+            {mode === "email" ? (
+              <p className="track-note">
+                Note: only orders placed through the guest journey can be viewed here.
+              </p>
+            ) : null}
+
             <div className="track-order-actions">
               <button type="button" className="secondary" onClick={onBackToShop}>Back to shop</button>
               <button type="submit" disabled={loading}>{loading ? "Searching..." : "Track order"}</button>

@@ -9,6 +9,7 @@ import {
   getAllSalesOrders,
   getAvailableOrderStatuses,
   createSalesOrder,
+  getGuestSalesOrdersByCustomerEmail,
   getSalesOrdersByCustomerId,
   getSalesOrderByOrderNumber,
   getSalesOrdersByCustomerEmail,
@@ -103,7 +104,7 @@ function buildPersistedItems({ items, products }) {
   });
 }
 
-export async function placeOrder(payload) {
+export async function placeOrder(payload, { authUserId = null } = {}) {
   const {
     customer,
     items,
@@ -151,7 +152,10 @@ export async function placeOrder(payload) {
           ? normalizedExpectedDeliveryDate.toISOString()
           : null
       },
-      persistedItems
+      persistedItems,
+      {
+        authenticatedUserId: authUserId || null
+      }
     );
 
     return createOrderResponseModel({
@@ -201,7 +205,7 @@ export async function trackOrders({ orderNumber, email }) {
     };
   }
 
-  const orders = await getSalesOrdersByCustomerEmail(normalizedEmail);
+  const orders = await getGuestSalesOrdersByCustomerEmail(normalizedEmail);
 
   return {
     mode: "email",

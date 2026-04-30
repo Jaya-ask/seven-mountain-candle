@@ -13,7 +13,9 @@ export async function createOrder(request, response, next) {
     return;
   }
 
-  const order = await placeOrder(request.body);
+  const order = await placeOrder(request.body, {
+    authUserId: request.auth?.userId || null
+  });
   response.status(201).json(order);
 }
 

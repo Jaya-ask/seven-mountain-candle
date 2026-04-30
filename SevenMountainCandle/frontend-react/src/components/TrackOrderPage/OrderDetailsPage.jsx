@@ -71,12 +71,13 @@ export default function OrderDetailsPage({
   onBackToTrackOrders,
   initialOrder
 }) {
-  const [order, setOrder] = useState(initialOrder || null);
-  const [loading, setLoading] = useState(!initialOrder);
+  const shouldFetchOrder = !initialOrder || Boolean(initialOrder?.summaryOnly);
+  const [order, setOrder] = useState(shouldFetchOrder ? null : initialOrder);
+  const [loading, setLoading] = useState(shouldFetchOrder);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (initialOrder) {
+    if (!shouldFetchOrder) {
       return;
     }
 
@@ -116,7 +117,7 @@ export default function OrderDetailsPage({
     return () => {
       isCancelled = true;
     };
-  }, [initialOrder, orderNumber]);
+  }, [orderNumber, shouldFetchOrder]);
 
   const items = Array.isArray(order?.items) ? order.items : [];
 

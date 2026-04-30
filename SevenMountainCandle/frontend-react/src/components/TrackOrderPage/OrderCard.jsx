@@ -26,9 +26,11 @@ function getProductImage(item, products) {
 }
 
 export default function OrderCard({ order, currency, products, onViewDetails }) {
-  const itemCount = Array.isArray(order.items)
-    ? order.items.reduce((count, item) => count + (Number(item.quantity) || 0), 0)
-    : 0;
+  const itemCount = Number.isFinite(Number(order.itemCount))
+    ? Number(order.itemCount)
+    : Array.isArray(order.items)
+      ? order.items.reduce((count, item) => count + (Number(item.quantity) || 0), 0)
+      : 0;
   const items = Array.isArray(order.items) ? order.items : [];
   const previewItems = items.slice(0, 1);
   const remainingItemCount = Math.max(items.length - previewItems.length, 0);
@@ -50,7 +52,9 @@ export default function OrderCard({ order, currency, products, onViewDetails }) 
           <p><strong>Total:</strong> {currency.format(totalValue)}</p>
         </div>
 
-        {previewItems.length > 0 ? (
+        {order.summaryOnly ? (
+          <p className="empty-items">Item and delivery details are hidden for email search.</p>
+        ) : previewItems.length > 0 ? (
           <div className="track-order-preview-list">
             {previewItems.map((item) => {
               const itemImage = getProductImage(item, products);

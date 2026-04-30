@@ -68,72 +68,43 @@ async function resolveOrderStatus(client, statusName) {
   return fallbackResult.rows[0] || { id: null, name: "Pending" };
 }
 
-export async function createSalesOrder(order, items) {
+export async function createSalesOrder(order, items, { authenticatedUserId = null } = {}) {
   const client = await dbPool.connect();
 
   try {
     await client.query("BEGIN");
 
-    const customerUpsertResult = await client.query(
-      `
-        INSERT INTO customer (
-          full_name,
-          email,
-          phone,
-          password_hash,
-          has_account
-        )
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (email)
-        DO UPDATE
-        SET
-          updated_at = NOW()
-        RETURNING id, has_account
-      `,
-      [
-        order.customerName,
-        order.customerEmail,
-        order.customerPhone,
-        "",
-        false
-      ]
-    );
-
-    const customer = customerUpsertResult.rows[0];
+    let customer = null;
     const normalizedShippingLocation = order.shippingLocation?.toString().trim() || null;
     const status = await resolveOrderStatus(client, order.status);
+    let customerAddressId = null;
 
-    const existingCustomerAddressResult = await client.query(
-      `
-        SELECT id
-        FROM customer_address
-        WHERE customer_id = $1
-          AND address_line = $2
-          AND city = $3
-          AND COALESCE(location_label, '') = COALESCE($4, '')
-        LIMIT 1
-      `,
-      [
-        customer.id,
-        order.shippingAddress,
-        order.shippingCity,
-        normalizedShippingLocation
-      ]
-    );
-
-    let customerAddressId = existingCustomerAddressResult.rows[0]?.id;
-
-    if (!customerAddressId) {
-      const customerAddressInsertResult = await client.query(
+    if (authenticatedUserId) {
+      const customerResult = await client.query(
         `
-          INSERT INTO customer_address (
-            customer_id,
-            address_line,
-            city,
-            location_label
-          )
-          VALUES ($1, $2, $3, $4)
-          RETURNING id
+          SELECT id, has_account
+          FROM customer
+          WHERE id = $1
+          LIMIT 1
+        `,
+        [authenticatedUserId]
+      );
+
+      customer = customerResult.rows[0] || null;
+
+      if (!customer) {
+        throw new Error("Authenticated customer not found.");
+      }
+
+      const existingCustomerAddressResult = await client.query(
+        `
+          SELECT id
+          FROM customer_address
+          WHERE customer_id = $1
+            AND address_line = $2
+            AND city = $3
+            AND COALESCE(location_label, '') = COALESCE($4, '')
+          LIMIT 1
         `,
         [
           customer.id,
@@ -143,7 +114,30 @@ export async function createSalesOrder(order, items) {
         ]
       );
 
-      customerAddressId = customerAddressInsertResult.rows[0].id;
+      customerAddressId = existingCustomerAddressResult.rows[0]?.id || null;
+
+      if (!customerAddressId) {
+        const customerAddressInsertResult = await client.query(
+          `
+            INSERT INTO customer_address (
+              customer_id,
+              address_line,
+              city,
+              location_label
+            )
+            VALUES ($1, $2, $3, $4)
+            RETURNING id
+          `,
+          [
+            customer.id,
+            order.shippingAddress,
+            order.shippingCity,
+            normalizedShippingLocation
+          ]
+        );
+
+        customerAddressId = customerAddressInsertResult.rows[0].id;
+      }
     }
 
     const orderInsertResult = await client.query(
@@ -166,12 +160,12 @@ export async function createSalesOrder(order, items) {
           total,
           expected_delivery_date
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_DATE + 4)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, COALESCE($16::date, CURRENT_DATE + 4))
         RETURNING id, order_number, customer_id, customer_address_id, subtotal, shipping_charge, total, expected_delivery_date, created_at
       `,
       [
         order.orderNumber,
-        customer.id,
+        customer?.id || null,
         customerAddressId,
         status.id,
         order.customerName,
@@ -184,14 +178,15 @@ export async function createSalesOrder(order, items) {
         order.currencyCode,
         order.subtotal,
         order.shippingCharge,
-        order.total
+        order.total,
+        order.expectedDeliveryDate || null
       ]
     );
 
     const insertedOrder = {
       ...orderInsertResult.rows[0],
       status: status.name,
-      customer_has_account: customer.has_account
+      customer_has_account: Boolean(customer?.has_account)
     };
 
     for (const item of items) {
@@ -247,6 +242,21 @@ export async function getSalesOrdersByCustomerEmail(customerEmail) {
     `
       ${ORDER_SELECT_WITH_ITEMS_SQL}
       WHERE lower(so.customer_email) = lower($1)
+      GROUP BY so.id, os.name
+      ORDER BY so.created_at DESC
+    `,
+    [customerEmail]
+  );
+
+  return result.rows;
+}
+
+export async function getGuestSalesOrdersByCustomerEmail(customerEmail) {
+  const result = await dbPool.query(
+    `
+      ${ORDER_SELECT_WITH_ITEMS_SQL}
+      WHERE lower(so.customer_email) = lower($1)
+        AND so.customer_id IS NULL
       GROUP BY so.id, os.name
       ORDER BY so.created_at DESC
     `,

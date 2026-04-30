@@ -94,13 +94,20 @@ function buildPayloadFromDraft(draft) {
 
 function ProductForm({
   title,
+  cloudManaged,
   draft,
+  productSku,
   categories,
   submitting,
+  imageActionInProgress,
   submitLabel,
   onChange,
+  onUploadImage,
+  onDeleteImage,
   onSubmit
 }) {
+  const fileInputRef = useRef(null);
+
   function addTag() {
     onChange((current) => {
       const nextTag = current.nextTag.trim();
@@ -263,25 +270,57 @@ function ProductForm({
       <section className="manage-products__images">
         <div className="manage-products__images-header">
           <h4>Images</h4>
-          <button
-            type="button"
-            onClick={() => {
-              onChange((current) => ({
-                ...current,
-                images: [
-                  ...current.images,
-                  {
-                    url: "",
-                    isPrimary: current.images.length === 0,
-                    sortOrder: current.images.length
+          {cloudManaged ? (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(event) => {
+                  const selectedFile = event.target.files?.[0] || null;
+                  event.target.value = "";
+                  if (selectedFile) {
+                    onUploadImage?.(selectedFile);
                   }
-                ]
-              }));
-            }}
-          >
-            Add image
-          </button>
+                }}
+              />
+              <button
+                type="button"
+                disabled={!productSku || imageActionInProgress}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {imageActionInProgress ? "Working..." : "Upload image"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                onChange((current) => ({
+                  ...current,
+                  images: [
+                    ...current.images,
+                    {
+                      url: "",
+                      isPrimary: current.images.length === 0,
+                      sortOrder: current.images.length
+                    }
+                  ]
+                }));
+              }}
+            >
+              Add image
+            </button>
+          )}
         </div>
+
+        {imageActionInProgress ? (
+          <div className="manage-products__images-loader" role="status" aria-live="polite">
+            <span className="manage-products__spinner" aria-hidden="true" />
+            <span>Processing image action...</span>
+          </div>
+        ) : null}
 
         {draft.images.length === 0 ? <p className="manage-products__muted">No images added yet.</p> : null}
 
@@ -309,6 +348,7 @@ function ProductForm({
               <input
                 placeholder="https://example.com/image.jpg"
                 value={image.url}
+                readOnly={cloudManaged}
                 onChange={(event) => {
                   const nextUrl = event.target.value;
                   onChange((current) => ({
@@ -322,6 +362,7 @@ function ProductForm({
               <button
                 type="button"
                 className={image.isPrimary ? "primary" : ""}
+                disabled={cloudManaged}
                 onClick={() => {
                   onChange((current) => ({
                     ...current,
@@ -337,7 +378,13 @@ function ProductForm({
               <button
                 type="button"
                 className="danger"
+                disabled={imageActionInProgress}
                 onClick={() => {
+                  if (cloudManaged) {
+                    onDeleteImage?.(image);
+                    return;
+                  }
+
                   onChange((current) => ({
                     ...current,
                     images: current.images.filter((_, entryIndex) => entryIndex !== index)
@@ -377,6 +424,7 @@ export default function ManageProductsPage({ authToken, onCatalogRefresh }) {
   const [savingCreate, setSavingCreate] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [successToast, setSuccessToast] = useState("");
+  const [imageActionInProgress, setImageActionInProgress] = useState(false);
 
   useEffect(() => {
     if (!authToken) {
@@ -612,6 +660,92 @@ export default function ManageProductsPage({ authToken, onCatalogRefresh }) {
     }
   }
 
+  async function handleUploadImageForSelectedProduct(file) {
+    if (!selectedSku || !file) {
+      return;
+    }
+
+    setImageActionInProgress(true);
+    setEditState("");
+
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch(`/api/admin/products/${encodeURIComponent(selectedSku)}/images`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authToken}`
+        },
+        body: formData
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload?.message || "Unable to upload image.");
+      }
+
+      const updatedProduct = payload?.product;
+      if (updatedProduct?.sku) {
+        setProducts((current) => current.map((entry) => (
+          entry.sku === updatedProduct.sku ? updatedProduct : entry
+        )));
+        setEditDraft(createDraftFromProduct(updatedProduct));
+      }
+
+      showSuccessToast("Image uploaded successfully.");
+      onCatalogRefresh?.();
+    } catch (requestError) {
+      setEditState(requestError?.message || "Unable to upload image.");
+    } finally {
+      setImageActionInProgress(false);
+    }
+  }
+
+  async function handleDeleteImageForSelectedProduct(image) {
+    if (!selectedSku || !image) {
+      return;
+    }
+
+    setImageActionInProgress(true);
+    setEditState("");
+
+    try {
+      const response = await fetch(`/api/admin/products/${encodeURIComponent(selectedSku)}/images`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          imageUrl: image.url || ""
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload?.message || "Unable to delete image.");
+      }
+
+      const updatedProduct = payload?.product;
+      if (updatedProduct?.sku) {
+        setProducts((current) => current.map((entry) => (
+          entry.sku === updatedProduct.sku ? updatedProduct : entry
+        )));
+        setEditDraft(createDraftFromProduct(updatedProduct));
+      }
+
+      showSuccessToast("Image deleted successfully.");
+      onCatalogRefresh?.();
+    } catch (requestError) {
+      setEditState(requestError?.message || "Unable to delete image.");
+    } finally {
+      setImageActionInProgress(false);
+    }
+  }
+
   return (
     <main className="manage-products-page">
       <section className="manage-products-page__panel">
@@ -673,11 +807,16 @@ export default function ManageProductsPage({ authToken, onCatalogRefresh }) {
                 <>
                   <ProductForm
                     title="Edit Product"
+                    cloudManaged
                     draft={editDraft}
+                    productSku={selectedSku}
                     categories={categories}
                     submitting={savingEdit}
+                    imageActionInProgress={imageActionInProgress}
                     submitLabel="Save changes"
                     onChange={setEditDraft}
+                    onUploadImage={handleUploadImageForSelectedProduct}
+                    onDeleteImage={handleDeleteImageForSelectedProduct}
                     onSubmit={handleUpdateProduct}
                   />
 
@@ -727,11 +866,16 @@ export default function ManageProductsPage({ authToken, onCatalogRefresh }) {
 
               <ProductForm
                 title="Create Product"
+                cloudManaged={false}
                 draft={createDraft}
+                productSku={createDraft.sku}
                 categories={categories}
                 submitting={savingCreate}
+                imageActionInProgress={false}
                 submitLabel="Create product"
                 onChange={setCreateDraft}
+                onUploadImage={null}
+                onDeleteImage={null}
                 onSubmit={handleCreateProduct}
               />
               {createState ? <p className="manage-products__meta">{createState}</p> : null}
@@ -742,6 +886,15 @@ export default function ManageProductsPage({ authToken, onCatalogRefresh }) {
         {successToast ? (
           <div className="manage-products__toast" role="status" aria-live="polite">
             {successToast}
+          </div>
+        ) : null}
+
+        {imageActionInProgress ? (
+          <div className="manage-products__page-loader-backdrop" role="status" aria-live="polite">
+            <div className="manage-products__page-loader-card">
+              <span className="manage-products__spinner large" aria-hidden="true" />
+              <p>Processing image action. Please wait...</p>
+            </div>
           </div>
         ) : null}
       </section>

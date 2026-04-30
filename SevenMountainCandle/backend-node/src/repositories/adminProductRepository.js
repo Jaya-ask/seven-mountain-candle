@@ -159,6 +159,148 @@ export async function getCategoryRows() {
   return result.rows;
 }
 
+export async function getProductBySku(sku) {
+  const result = await dbPool.query(
+    `
+      ${ADMIN_PRODUCT_SELECT_SQL}
+      WHERE upper(p.sku) = upper($1)
+      LIMIT 1
+    `,
+    [sku]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function getNextSortOrderForProduct(client, sku) {
+  const result = await client.query(
+    `
+      SELECT COALESCE(MAX(sort_order), -1) AS max_sort_order
+      FROM product_image
+      WHERE upper(product_sku) = upper($1)
+    `,
+    [sku]
+  );
+
+  const maxSortOrder = Number(result.rows[0]?.max_sort_order);
+  return Number.isFinite(maxSortOrder) ? maxSortOrder + 1 : 0;
+}
+
+export async function addProductImageRow({ sku, imageUrl, isPrimary }) {
+  const client = await dbPool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const productResult = await client.query(
+      `
+        SELECT sku
+        FROM product
+        WHERE upper(sku) = upper($1)
+        LIMIT 1
+      `,
+      [sku]
+    );
+
+    if (!productResult.rows[0]) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    const normalizedSku = productResult.rows[0].sku;
+    const shouldBePrimary = Boolean(isPrimary);
+
+    if (shouldBePrimary) {
+      await client.query(
+        `
+          UPDATE product_image
+          SET is_primary = FALSE
+          WHERE upper(product_sku) = upper($1)
+        `,
+        [normalizedSku]
+      );
+    }
+
+    const sortOrder = await getNextSortOrderForProduct(client, normalizedSku);
+
+    await client.query(
+      `
+        INSERT INTO product_image (product_sku, image_url, is_primary, sort_order)
+        VALUES ($1, $2, $3, $4)
+      `,
+      [normalizedSku, imageUrl, shouldBePrimary, sortOrder]
+    );
+
+    await client.query("COMMIT");
+    return normalizedSku;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function removeProductImageRow({ sku, imageUrl }) {
+  const client = await dbPool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const deleteResult = await client.query(
+      `
+        DELETE FROM product_image
+        WHERE upper(product_sku) = upper($1)
+          AND image_url = $2
+        RETURNING is_primary, image_url
+      `,
+      [sku, imageUrl || ""]
+    );
+
+    const deletedImage = deleteResult.rows[0] || null;
+    if (!deletedImage) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    if (deletedImage.is_primary) {
+      const nextImageResult = await client.query(
+        `
+          SELECT id
+          FROM product_image
+          WHERE upper(product_sku) = upper($1)
+          ORDER BY sort_order ASC, created_at ASC
+          LIMIT 1
+        `,
+        [sku]
+      );
+
+      const nextImageId = nextImageResult.rows[0]?.id;
+      if (nextImageId) {
+        await client.query(
+          `
+            UPDATE product_image
+            SET is_primary = TRUE
+            WHERE id = $1
+          `,
+          [nextImageId]
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+
+    return {
+      deletedImageUrl: deletedImage.image_url || ""
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function createAdminProductRow(payload) {
   const client = await dbPool.connect();
 

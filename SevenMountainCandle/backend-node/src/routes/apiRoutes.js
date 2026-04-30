@@ -8,13 +8,16 @@ import {
 } from "../controllers/authController.js";
 import {
   createAdminProductHandler,
+  deleteAdminProductImageHandler,
   deleteAdminProductHandler,
   getAdminOrders,
   getAdminProducts,
+  uploadAdminProductImageHandler,
   updateAdminProductHandler,
   updateAdminExpectedDeliveryDate,
   updateAdminOrderStatus
 } from "../controllers/adminController.js";
+import multer from "multer";
 import { getCatalog } from "../controllers/catalogController.js";
 import { getHealth } from "../controllers/healthController.js";
 import {
@@ -22,7 +25,12 @@ import {
   getMyOrders,
   getTrackedOrders
 } from "../controllers/ordersController.js";
-import { requireAdmin, requireAuth } from "../middlewares/authMiddleware.js";
+import {
+  clearMyCart,
+  getMyCart,
+  saveMyCart
+} from "../controllers/cartController.js";
+import { optionalAuth, requireAdmin, requireAuth } from "../middlewares/authMiddleware.js";
 import {
   getFeaturedProductsList,
   getProducts
@@ -35,6 +43,12 @@ import {
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const apiRoutes = Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 8 * 1024 * 1024
+  }
+});
 
 apiRoutes.post("/auth/register", asyncHandler(register));
 apiRoutes.post("/auth/login", asyncHandler(login));
@@ -47,9 +61,12 @@ apiRoutes.get("/products/featured", asyncHandler(getFeaturedProductsList));
 apiRoutes.get("/products/:productId/reviews", asyncHandler(getProductReviews));
 apiRoutes.post("/products/:productId/reviews", asyncHandler(createProductReview));
 apiRoutes.get("/reviews", asyncHandler(getReviewsByQuery));
-apiRoutes.post("/orders", asyncHandler(createOrder));
+apiRoutes.post("/orders", optionalAuth, asyncHandler(createOrder));
 apiRoutes.get("/orders/track", asyncHandler(getTrackedOrders));
 apiRoutes.get("/orders/mine", requireAuth, asyncHandler(getMyOrders));
+apiRoutes.get("/cart", requireAuth, asyncHandler(getMyCart));
+apiRoutes.put("/cart", requireAuth, asyncHandler(saveMyCart));
+apiRoutes.delete("/cart", requireAuth, asyncHandler(clearMyCart));
 apiRoutes.get("/admin/orders", requireAuth, requireAdmin, asyncHandler(getAdminOrders));
 apiRoutes.patch("/admin/orders/:orderNumber/status", requireAuth, requireAdmin, asyncHandler(updateAdminOrderStatus));
 apiRoutes.patch("/admin/orders/:orderNumber/expected-delivery-date", requireAuth, requireAdmin, asyncHandler(updateAdminExpectedDeliveryDate));
@@ -57,5 +74,7 @@ apiRoutes.get("/admin/products", requireAuth, requireAdmin, asyncHandler(getAdmi
 apiRoutes.post("/admin/products", requireAuth, requireAdmin, asyncHandler(createAdminProductHandler));
 apiRoutes.put("/admin/products/:productSku", requireAuth, requireAdmin, asyncHandler(updateAdminProductHandler));
 apiRoutes.delete("/admin/products/:productSku", requireAuth, requireAdmin, asyncHandler(deleteAdminProductHandler));
+apiRoutes.post("/admin/products/:productSku/images", requireAuth, requireAdmin, upload.single("image"), asyncHandler(uploadAdminProductImageHandler));
+apiRoutes.delete("/admin/products/:productSku/images", requireAuth, requireAdmin, asyncHandler(deleteAdminProductImageHandler));
 
 export default apiRoutes;

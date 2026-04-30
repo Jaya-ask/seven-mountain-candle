@@ -1,12 +1,19 @@
 import { createCategoryModel } from "../models/categoryModel.js";
 import { createProductModelFromRow } from "../models/productModel.js";
 import {
+  addProductImageRow,
   createAdminProductRow,
   deleteAdminProductRow,
+  getProductBySku,
   getAdminProductRows,
   getCategoryRows,
+  removeProductImageRow,
   updateAdminProductRow
 } from "../repositories/adminProductRepository.js";
+import {
+  deleteImageFromCloudinary,
+  uploadImageToCloudinary
+} from "./cloudinaryService.js";
 import AppError from "../utils/AppError.js";
 
 function normalizeTags(tags) {
@@ -125,8 +132,7 @@ function normalizeProductPayload(payload) {
 }
 
 async function getProductBySkuOrThrow(sku) {
-  const rows = await getAdminProductRows();
-  const matched = rows.find((row) => row.sku?.toLowerCase() === sku.toLowerCase()) || null;
+  const matched = await getProductBySku(sku);
 
   if (!matched) {
     throw new AppError("Product not found.", 404);
@@ -239,5 +245,85 @@ export async function deleteAdminProduct(sku) {
 
   return {
     message: "Product deleted successfully."
+  };
+}
+
+export async function uploadAdminProductImage({ sku, file }) {
+  const normalizedSku = sku?.toString().trim() || "";
+
+  if (!normalizedSku) {
+    throw new AppError("Product SKU is required.", 400);
+  }
+
+  if (!file?.buffer || !file?.mimetype) {
+    throw new AppError("Image file is required.", 400);
+  }
+
+  if (!file.mimetype.startsWith("image/")) {
+    throw new AppError("Only image files are allowed.", 400);
+  }
+
+  const existingProduct = await getProductBySkuOrThrow(normalizedSku);
+  const shouldBePrimary = !Array.isArray(existingProduct.images) || existingProduct.images.length === 0;
+
+  const uploaded = await uploadImageToCloudinary({
+    fileBuffer: file.buffer,
+    mimeType: file.mimetype,
+    sku: normalizedSku
+  });
+
+  const updatedSku = await addProductImageRow({
+    sku: normalizedSku,
+    imageUrl: uploaded.url,
+    isPrimary: shouldBePrimary
+  });
+
+  if (!updatedSku) {
+    await deleteImageFromCloudinary(uploaded.url);
+    throw new AppError("Product not found.", 404);
+  }
+
+  const product = await getProductBySkuOrThrow(updatedSku);
+
+  return {
+    message: "Image uploaded successfully.",
+    image: {
+      url: uploaded.url
+    },
+    product
+  };
+}
+
+export async function deleteAdminProductImage({ sku, imageUrl }) {
+  const normalizedSku = sku?.toString().trim() || "";
+
+  if (!normalizedSku) {
+    throw new AppError("Product SKU is required.", 400);
+  }
+
+  const normalizedImageUrl = imageUrl?.toString().trim() || "";
+
+  if (!normalizedImageUrl) {
+    throw new AppError("Provide imageUrl to delete image.", 400);
+  }
+
+  const removed = await removeProductImageRow({
+    sku: normalizedSku,
+    imageUrl: normalizedImageUrl
+  });
+
+  if (!removed) {
+    throw new AppError("Image not found for selected product.", 404);
+  }
+
+  if (removed.deletedImageUrl) {
+    await deleteImageFromCloudinary(removed.deletedImageUrl);
+  }
+
+  const product = await getProductBySkuOrThrow(normalizedSku);
+
+  return {
+    message: "Image deleted successfully.",
+    product
   };
 }

@@ -5,8 +5,10 @@ import {
 } from "../services/orderService.js";
 import {
   createAdminProduct,
+  deleteAdminProductImage,
   deleteAdminProduct,
   getAdminProductsPayload,
+  uploadAdminProductImage,
   updateAdminProduct
 } from "../services/adminProductService.js";
 
@@ -60,5 +62,23 @@ export async function updateAdminProductHandler(request, response) {
 
 export async function deleteAdminProductHandler(request, response) {
   const payload = await deleteAdminProduct(request.params.productSku);
+  response.status(200).json(payload);
+}
+
+export async function uploadAdminProductImageHandler(request, response) {
+  const payload = await uploadAdminProductImage({
+    sku: request.params.productSku,
+    file: request.file
+  });
+
+  response.status(201).json(payload);
+}
+
+export async function deleteAdminProductImageHandler(request, response) {
+  const payload = await deleteAdminProductImage({
+    sku: request.params.productSku,
+    imageUrl: request.body?.imageUrl
+  });
+
   response.status(200).json(payload);
 }

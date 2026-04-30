@@ -20,6 +20,7 @@ import TrackOrderPage from "./components/TrackOrderPage/TrackOrderPage";
 import OrderDetailsPage from "./components/TrackOrderPage/OrderDetailsPage";
 import AdminPage from "./components/AdminPage/AdminPage";
 import ManageProductsPage from "./components/ManageProductsPage/ManageProductsPage";
+import GuestCheckoutPrompt from "./components/GuestCheckoutPrompt/GuestCheckoutPrompt";
 import useCatalog from "./hooks/useCatalog";
 import useCart from "./hooks/useCart";
 
@@ -84,6 +85,7 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [guestCheckoutPromptOpen, setGuestCheckoutPromptOpen] = useState(false);
   const [authState, setAuthState] = useState(() => {
     const token = window.localStorage.getItem("authToken") || "";
     const rawUser = window.localStorage.getItem("authUser");
@@ -119,7 +121,7 @@ export default function App() {
     addToCart,
     updateQuantity,
     clearCart
-  } = useCart();
+  } = useCart({ authToken: authState.token });
 
   const isLoggedIn = Boolean(authState.token);
   const isAdmin = authState.user?.role === "admin";
@@ -176,6 +178,27 @@ export default function App() {
     setCartOpen(false);
 
     navigate("/checkout");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleProceedToCheckout = () => {
+    if (isLoggedIn) {
+      goToCheckoutPage();
+      return;
+    }
+
+    setCartOpen(false);
+    setGuestCheckoutPromptOpen(true);
+  };
+
+  const continueCheckoutAsGuest = () => {
+    setGuestCheckoutPromptOpen(false);
+    goToCheckoutPage();
+  };
+
+  const goToLoginForCheckout = () => {
+    setGuestCheckoutPromptOpen(false);
+    navigate("/auth?redirect=%2Fcheckout");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -248,11 +271,17 @@ export default function App() {
   };
 
   const placeOrder = async (payload) => {
+    const headers = {
+      "Content-Type": "application/json"
+    };
+
+    if (authState.token) {
+      headers.Authorization = `Bearer ${authState.token}`;
+    }
+
     const response = await fetch("/api/orders", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers,
       body: JSON.stringify(payload)
     });
 
@@ -419,11 +448,18 @@ export default function App() {
       <CartDrawer
         open={cartOpen}
         cart={cart}
+        subtotal={currency.format(subtotal)}
         onClose={() => setCartOpen(false)}
         onUpdateQuantity={updateQuantity}
-        onProceedToCheckout={goToCheckoutPage}
+        onProceedToCheckout={handleProceedToCheckout}
         onShopNow={goToShopPage}
         currency={currency}
+      />
+      <GuestCheckoutPrompt
+        open={guestCheckoutPromptOpen}
+        onClose={() => setGuestCheckoutPromptOpen(false)}
+        onContinueAsGuest={continueCheckoutAsGuest}
+        onLogin={goToLoginForCheckout}
       />
       <Footer />
     </div>
